@@ -59,7 +59,7 @@ function List(id, options, values) {
 		options.sortClass = options.sortClass || 'sort';
 		
         templater = new Templater(self, options);
-        self.list = ListJsHelpers.getByClass(options.listClass, self.listContainer, true);
+        self.list = ListJsHelpers.getByClass(options.listClass, self.listContainer, false);
         ListJsHelpers.addEvent(ListJsHelpers.getByClass(options.searchClass, self.listContainer), 'keyup', self.search);
         ListJsHelpers.addEvent(ListJsHelpers.getByClass(options.sortClass, self.listContainer), 'click', self.sort);
         if (options.valueNames) {
@@ -79,15 +79,33 @@ function List(id, options, values) {
 	initialItems = {
         get: function() {
             // return ListJsHelpers.getByClass('item', self.list);
-			var nodes = self.list.childNodes,
-				items = [];
-			for (var i = 0, il = nodes.length; i < il; i++) {
-				// Only textnodes have a data attribute
-				if (nodes[i].data === undefined) {
-					items.push(nodes[i]);
-				}
-			}
-			return items;
+            var n=self.list.length,
+                items = [],
+                nodes,
+                i,j,il;
+            if(n > 0) {
+                for(j=0; j<n; j++) {
+                    nodes = self.list[j].childNodes
+                    for (i = 0, il = nodes.length; i < il; i++) {
+                            // Only textnodes have a data attribute
+                            if (nodes[i].data === undefined) {
+                                    nodes[i].idListParent = j;
+                                    items.push(nodes[i]);
+                            }
+                    }
+                }
+            } else {
+                nodes = self.list[j].childNodes
+
+                for (i = 0, il = nodes.length; i < il; i++) {
+                        // Only textnodes have a data attribute
+                        if (nodes[i].data === undefined) {
+                                nodes[i].idListParent = 0;
+                                items.push(nodes[i]);
+                        }
+                }
+            }
+            return items;
         },
         index: function(itemElements, valueNames) {
             for (var i = 0, il = itemElements.length; i < il; i++) {
@@ -433,13 +451,14 @@ List.prototype.templateEngines = {};
 
 
 List.prototype.templateEngines.standard = function(list, settings) {
-    var listSource = ListJsHelpers.getByClass(settings.listClass, document.getElementById(settings.list))[0],
+    var listSource = ListJsHelpers.getByClass(settings.listClass, document.getElementById(settings.list)),
 		itemSource = document.getElementById(settings.item),
 		templater = this,
 		ensure = {
 			tryItemSourceExists: function() {
 				if (itemSource === null) {
-					var nodes = listSource.childNodes,
+                                    for(var j=0; j<listSource.length; j++) {
+					var nodes = listSource[j].childNodes,
 					items = [];
 					for (var i = 0, il = nodes.length; i < il; i++) {
 						// Only textnodes have a data attribute
@@ -448,6 +467,7 @@ List.prototype.templateEngines.standard = function(list, settings) {
 							break;
 						}
 					}
+                                    }
 				}
 			},
 			created: function(item) {
@@ -461,7 +481,7 @@ List.prototype.templateEngines.standard = function(list, settings) {
 				}
 			}
 		};
-
+//                console.log(listSource);
     /* Get values from element */
     this.get = function(item, valueNames) {
 		ensure.tryItemSourceExists();
@@ -501,15 +521,15 @@ List.prototype.templateEngines.standard = function(list, settings) {
     };
     this.add = function(item) {
         ensure.created(item);
-        listSource.appendChild(item.elm);
+        listSource[item.elm.idListParent].appendChild(item.elm);
     };
     this.remove = function(item) {
-        listSource.removeChild(item.elm);
+        listSource[item.elm.idListParent].removeChild(item.elm);
     };
     this.show = function(item) {
         ensure.created(item);
         ensure.added(item);
-		listSource.appendChild(item.elm);
+        listSource[item.elm.idListParent].appendChild(item.elm);
     };
     this.hide = function(item) {
         ensure.created(item);
@@ -517,12 +537,14 @@ List.prototype.templateEngines.standard = function(list, settings) {
     };
     this.clear = function() {
 		/* .innerHTML = ''; fucks up IE */
-        if (listSource.hasChildNodes()) {
-		    while (listSource.childNodes.length >= 1)
-		    {
-		        listSource.removeChild(listSource.firstChild);       
-		    } 
-		}
+        for(var i=0; i<listSource.length; i++) {
+            if (listSource[i].hasChildNodes()) {
+                while (listSource[i].childNodes.length >= 1) {
+                    listSource[i].removeChild(listSource[i].firstChild);
+                } 
+            }
+
+        }
     };
 };
 

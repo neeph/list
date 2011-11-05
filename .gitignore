@@ -4,3 +4,4 @@ last-build.txt
 build.xml
 build-tools/
 lab/
+/nbproject/private/
